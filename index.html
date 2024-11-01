@@ -36,6 +36,7 @@
             padding: 20px;
         }
 
+      
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -212,10 +213,26 @@
             100% { transform: rotate(360deg); }
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
+ /* تصغير النص والتباعد على شاشات الكمبيوتر */
+@media (min-width: 768px) {
+    .results-table th, .results-table td {
+        font-size: 0.9rem; /* تصغير حجم النص */
+        padding: 0.8rem;   /* تقليل التباعد بين الخلايا */
+    }
+}
+
+/* السماح بالتمرير الأفقي على الهواتف الذكية */
+@media (max-width: 768px) {
+    .results-table {
+        display: block;
+        overflow-x: auto; /* يسمح بالتمرير الأفقي */
+        -webkit-overflow-scrolling: touch; /* تحسين التمرير على الأجهزة اللمسية */
+    }
+
+    .results-table th, .results-table td {
+        white-space: nowrap; /* منع التفاف النص */
+    }
+}
 
             .search-box {
                 flex-direction: column;
