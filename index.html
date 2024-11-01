@@ -47,8 +47,12 @@
             border-radius: var(--border-radius);
             padding: 2rem;
             box-shadow: var(--card-shadow);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             margin-bottom: 2rem;
+        }
+
+        .search-card:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         }
 
         .search-header {
@@ -136,6 +140,7 @@
             border-radius: var(--border-radius);
             overflow: hidden;
             box-shadow: var(--card-shadow);
+            table-layout: fixed;
         }
 
         .results-table th {
@@ -153,6 +158,9 @@
             color: var(--text-primary);
             border-bottom: 1px solid #e1e8ef;
             font-size: 1.05rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .results-table tbody tr {
@@ -212,11 +220,27 @@
             100% { transform: rotate(360deg); }
         }
 
+        @media (prefers-color-scheme: dark) {
+          :root {
+            --background-color: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --table-header-bg: #333;
+            --table-row-hover: #444;
+          }
+          .search-card, .results-table {
+            background-color: var(--background-color);
+          }
+          .search-input input, .search-button {
+            background-color: #333;
+            color: #fff;
+          }
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 10px;
             }
-
             .search-box {
                 flex-direction: column;
             }
@@ -235,16 +259,14 @@
                 font-size: 2rem;
             }
 
-            .search-input input,
-            .search-button {
+            .search-input input, .search-button {
                 padding: 1rem;
                 font-size: 1rem;
             }
         }
     </style>
 </head>
-
-    <body>
+<body>
     <div class="container">
         <div class="search-card">
             <div class="search-header">
@@ -380,67 +402,156 @@
                 });
             }
 
-            renderResults(results, headers) {
-                if (results.length === 0) {
-                    this.resultDiv.innerHTML = `
-                        <div class="no-results">
-                            <i class="mdi mdi-alert-circle-outline"></i>
-                            <p>لم يتم العثور على نتائج</p>
-                        </div>
-                    `;
-                    return;
-                }
+         renderResults(results, headers) {
+    if (results.length === 0) {
+        this.resultDiv.innerHTML = `
+            <div class="no-results">
+                <i class="mdi mdi-alert-circle-outline"></i>
+                <p>لم يتم العثور على نتائج</p>
+                <small>حاول البحث بكلمات مختلفة</small>
+            </div>
+        `;
+        return;
+    }
 
-                let html = '<div class="table-responsive"><table class="results-table">';
-                html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
-                html += '<tbody>';
-                results.forEach(row => {
-                    html += '<tr>';
-                    row.forEach((cell, index) => {
-                        const isNumber = !isNaN(cell) && cell.toString().includes('.');
-                        const cellClass = isNumber ? 'number-cell' : '';
-                        const formattedCell = this.formatCell(cell);
-                        html += `<td class="${cellClass}">${formattedCell}</td>`;
-                    });
-                    html += '</tr>';
-                });
-                html += '</tbody></table></div>';
-                this.resultDiv.innerHTML = html;
-            }
+    // إنشاء عنصر الجدول مع الإحصائيات
+    let html = `
+        <div class="results-stats">
+            <div class="stats-item">
+                <i class="mdi mdi-account-group"></i>
+                <span>عدد النتائج: ${results.length}</span>
+            </div>
+            <div class="stats-item">
+                <i class="mdi mdi-clock-outline"></i>
+                <span>وقت البحث: ${this.getSearchTime()} ثانية</span>
+            </div>
+        </div>
+        <div class="table-container">
+            <div class="table-actions">
+                <button class="action-btn" onclick="customerSearch.exportToExcel()">
+                    <i class="mdi mdi-microsoft-excel"></i>
+                    تصدير Excel
+                </button>
+                <button class="action-btn" onclick="customerSearch.printResults()">
+                    <i class="mdi mdi-printer"></i>
+                    طباعة
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="results-table">
+    `;
 
-            async searchData() {
-                const searchTerm = this.searchInput.value.trim();
-                
-                if (!searchTerm || searchTerm.length < this.minSearchLength) {
-                    this.resultDiv.innerHTML = '';
-                    return;
-                }
+    // إضافة رأس الجدول
+    html += '<thead><tr>';
+    headers.forEach(header => {
+        html += `<th>
+            <div class="th-content">
+                <span>${header}</span>
+                <i class="mdi mdi-sort-variant"></i>
+            </div>
+        </th>`;
+    });
+    html += '</tr></thead><tbody>';
 
-                this.showLoading();
+    // إضافة صفوف البيانات
+    results.forEach((row, rowIndex) => {
+        html += `<tr class="fade-in" style="animation-delay: ${rowIndex * 0.05}s">`;
+        row.forEach((cell, cellIndex) => {
+            const isNumber = !isNaN(cell) && cell.toString().includes('.');
+            const cellClass = isNumber ? 'number-cell' : '';
+            const formattedCell = this.formatCell(cell);
+            html += `
+                <td class="${cellClass}" data-label="${headers[cellIndex]}">
+                    <div class="td-content">${formattedCell}</div>
+                </td>
+            `;
+        });
+        html += '</tr>';
+    });
 
-                try {
-                    const data = await this.fetchData();
-                    if (!data || !data.length) {
-                        throw new Error('لا توجد بيانات متاحة');
-                    }
+    html += `
+                </tbody>
+            </table>
+        </div>
+    </div>`;
 
-                    const headers = data[0];
-                    const searchTermLower = searchTerm.toLowerCase();
-                    const results = data.slice(1).filter(row => {
-                        const cellText = row[0].toLowerCase();
-                        return cellText.includes(searchTermLower);
-                    });
+    this.resultDiv.innerHTML = html;
+    this.initializeTableFeatures();
+}
 
-                    this.renderResults(results, headers);
-                } catch (error) {
-                    this.showError(error.message);
-                    console.error('Error:', error);
-                }
-            }
+// دوال مساعدة جديدة
+initializeTableFeatures() {
+    // إضافة خاصية الفرز للجدول
+    const table = this.resultDiv.querySelector('.results-table');
+    if (table) {
+        table.querySelectorAll('th').forEach((th, index) => {
+            th.addEventListener('click', () => this.sortTable(index));
+        });
+    }
+
+    // إضافة تأثيرات التمرير
+    this.addScrollAnimation();
+}
+
+sortTable(columnIndex) {
+    const table = this.resultDiv.querySelector('.results-table');
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const headers = table.querySelectorAll('th');
+    
+    // تحديث اتجاه الفرز
+    const currentSort = headers[columnIndex].getAttribute('data-sort') || 'asc';
+    const newSort = currentSort === 'asc' ? 'desc' : 'asc';
+    
+    // إعادة تعيين جميع الرؤوس
+    headers.forEach(header => header.removeAttribute('data-sort'));
+    headers[columnIndex].setAttribute('data-sort', newSort);
+
+    // فرز الصفوف
+    rows.sort((a, b) => {
+        let x = a.cells[columnIndex].textContent.trim();
+        let y = b.cells[columnIndex].textContent.trim();
+        
+        if (!isNaN(x) && !isNaN(y)) {
+            x = parseFloat(x);
+            y = parseFloat(y);
         }
+        
+        return newSort === 'asc' 
+            ? (x < y ? -1 : 1)
+            : (x > y ? -1 : 1);
+    });
 
-        // تهيئة النظام
-        const customerSearch = new CustomerSearch();
-    </script>
-</body>
-</html>
+    // إعادة ترتيب الصفوف في الجدول
+    const tbody = table.querySelector('tbody');
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+addScrollAnimation() {
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        },
+        { threshold: 0.1 }
+    );
+
+    this.resultDiv.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+}
+
+getSearchTime() {
+    return ((Date.now() - this.searchStartTime) / 1000).toFixed(2);
+}
+
+// دوال التصدير والطباعة
+exportToExcel() {
+    const table = this.resultDiv.querySelector('.results-table');
+    const wb = XLSX.utils.table_to_book(table);
+    XLSX.writeFile(wb, 'نتائج_البحث.xlsx');
+}
+
+printResults() {
+    window.print();
+}
