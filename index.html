@@ -36,7 +36,6 @@
             padding: 20px;
         }
 
-      
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -249,7 +248,7 @@
             .search-box {
                 flex-direction: column;
             }
-            
+
             .search-button {
                 width: 100%;
             }
@@ -280,13 +279,13 @@
                 <h1>نظام البحث الذكي عن الزبائن</h1>
                 <p>ابحث عن الزبائن بسهولة وسرعة</p>
             </div>
-            
+
             <div class="search-box">
                 <div class="search-input">
                     <i class="mdi mdi-magnify"></i>
-                    <input 
-                        type="text" 
-                        id="searchInput" 
+                    <input
+                        type="text"
+                        id="searchInput"
                         placeholder="ادخل اسم الزبون..."
                         autocomplete="off"
                     >
@@ -296,7 +295,7 @@
                     بحث
                 </button>
             </div>
-            
+
             <div id="result"></div>
         </div>
     </div>
@@ -318,7 +317,7 @@
 
             setupEventListeners() {
                 document.querySelector('.search-button').addEventListener('click', () => this.searchData());
-                
+
                 this.searchInput.addEventListener('input', this.debounce(() => {
                     const value = this.searchInput.value.trim();
                     if (value.length >= this.minSearchLength) {
@@ -345,14 +344,14 @@
 
             async fetchData() {
                 try {
-                    if (this.cachedData && this.lastCacheTime && 
+                    if (this.cachedData && this.lastCacheTime &&
                         (Date.now() - this.lastCacheTime < this.CACHE_DURATION)) {
                         return this.cachedData;
                     }
 
                     const response = await Promise.race([
                         fetch(this.SHEET_URL),
-                        new Promise((_, reject) => 
+                        new Promise((_, reject) =>
                             setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 5000)
                         )
                     ]);
@@ -361,7 +360,7 @@
 
                     const html = await response.text();
                     const parsedData = this.parseGoogleSheet(html);
-                    
+
                     if (parsedData && parsedData.length) {
                         this.cachedData = parsedData;
                         this.lastCacheTime = Date.now();
@@ -379,7 +378,7 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const rows = Array.from(doc.querySelectorAll('tbody tr'));
-                return rows.map(row => 
+                return rows.map(row =>
                     Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim())
                 );
             }
@@ -439,7 +438,7 @@
 
             async searchData() {
                 const searchTerm = this.searchInput.value.trim();
-                
+
                 if (!searchTerm || searchTerm.length < this.minSearchLength) {
                     this.resultDiv.innerHTML = '';
                     return;
