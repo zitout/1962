@@ -419,15 +419,44 @@
                     return;
                 }
 
-                let html = '<table class="results-table">';
-                html += '<thead><tr>';
-                this.headers.forEach(header => {
-                    html += `<th>${header}</th>`;
-                });
-                html += '</tr></thead><tbody>';
+                let html = '<ul class="results-list">';
+    results.forEach(row => {
+        const name = row[0];
+        html += `<li class="result-item" data-name="${name}">${name}</li>`;
+    });
+    html += '</ul>';
+    this.resultDiv.innerHTML = html;
 
-                results.forEach(row => {
-                    html += '<tr>';
-                    row.forEach((cell, index) => {
-                        const isNumber = !isNaN(cell) && cell.toString().includes('.');
-                        const cellClass
+    // إضافة معالج للحدث عند الضغط على أسم
+    document.querySelectorAll('.result-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const name = item.dataset.name;
+            this.filterTable(name);
+        });
+    });
+}
+
+filterTable(name) {
+    const data = this.cachedData;
+    const headers = data[0];
+    const results = data.slice(1).filter(row => row[0] === name);
+    this.renderTable(results, headers);
+}
+
+renderTable(results, headers) {
+    let html = '<div class="table-responsive"><table class="results-table">';
+    html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
+    html += '<tbody>';
+    results.forEach(row => {
+        html += '<tr>';
+        row.forEach((cell, index) => {
+            const isNumber = !isNaN(cell) && cell.toString().includes('.');
+            const cellClass = isNumber ? 'number-cell' : '';
+            const formattedCell = this.formatCell(cell);
+            html += `<td class="${cellClass}">${formattedCell}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    this.resultDiv.innerHTML = html;
+}
