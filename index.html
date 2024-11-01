@@ -126,43 +126,50 @@
             background-color: var(--table-row-hover);
         }
 
-        .customer-details {
+        .results-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
             background: white;
             border-radius: var(--border-radius);
-            padding: 2rem;
-            margin-top: 2rem;
+            overflow: hidden;
             box-shadow: var(--card-shadow);
-            display: none;
+            margin-top: 2rem;
         }
 
-        .customer-details h2 {
-            color: var(--primary-color);
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
-        }
-
-        .details-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .detail-item {
-            background: var(--background-color);
-            padding: 1rem;
-            border-radius: var(--border-radius);
-        }
-
-        .detail-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .detail-value {
-            color: var(--text-primary);
-            font-size: 1.1rem;
+        .results-table th {
+            background: var(--table-header-bg);
+            color: white;
+            padding: 1.2rem;
+            text-align: right;
             font-weight: 600;
+            font-size: 1.1rem;
+            white-space: nowrap;
+        }
+
+        .results-table td {
+            padding: 1.2rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid #e1e8ef;
+            font-size: 1.05rem;
+        }
+
+        .results-table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        .results-table tbody tr:hover {
+            background-color: var(--table-row-hover);
+        }
+
+        .results-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .results-table td.number-cell {
+            font-family: 'Cairo', sans-serif;
+            text-align: center;
+            direction: ltr;
         }
 
         .loading-spinner {
@@ -181,6 +188,24 @@
             animation: spin 1s linear infinite;
         }
 
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-top: 2rem;
+        }
+
+        .no-results i {
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -196,8 +221,15 @@
                 font-size: 1rem;
             }
 
-            .details-grid {
-                grid-template-columns: 1fr;
+            .results-table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .results-table th,
+            .results-table td {
+                white-space: nowrap;
             }
         }
     </style>
@@ -222,10 +254,7 @@
                 <div class="suggestions-container" id="suggestionsContainer"></div>
             </div>
 
-            <div id="customerDetails" class="customer-details">
-                <h2>تفاصيل الزبون</h2>
-                <div class="details-grid" id="detailsGrid"></div>
-            </div>
+            <div id="resultsContainer"></div>
         </div>
     </div>
 
@@ -236,8 +265,7 @@
                 this.SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYssVb0l-reNB4oZ-1t_6brjDuHtCdnB6xd2MLaXUIxskRT0q6ms9m7TeoVmURzrriEfyKQWzKOcZY/pubhtml';
                 this.searchInput = document.getElementById('searchInput');
                 this.suggestionsContainer = document.getElementById('suggestionsContainer');
-                this.customerDetails = document.getElementById('customerDetails');
-                this.detailsGrid = document.getElementById('detailsGrid');
+                this.resultsContainer = document.getElementById('resultsContainer');
                 this.CACHE_DURATION = 1000 * 60 * 5; // 5 دقائق
                 this.lastCacheTime = null;
                 this.cachedData = null;
@@ -254,6 +282,7 @@
                         this.showSuggestions();
                     } else {
                         this.hideSuggestions();
+                        this.clearResults();
                     }
                 }, this.searchDelay));
 
@@ -327,12 +356,13 @@
 
                 try {
                     const data = await this.fetchData();
-                    const matches = data
-                        .filter(row => row[0].toLowerCase().includes(searchTerm))
-                        .map(row => row[0]);
+                    const uniqueNames = new Set(
+                        data.filter(row => row[0].toLowerCase().includes(searchTerm))
+                            .map(row => row[0])
+                    );
 
-                    if (matches.length > 0) {
-                        this.suggestionsContainer.innerHTML = matches
+                    if (uniqueNames.size > 0) {
+                        this.suggestionsContainer.innerHTML = Array.from(uniqueNames)
                             .map(name => `
                                 <div class="suggestion-item" data-name="${name}">
                                     ${name}
@@ -341,7 +371,6 @@
 
                         this.suggestionsContainer.style.display = 'block';
                         
-                        // إضافة مستمعي الأحداث للاقتراحات
                         this.suggestionsContainer.querySelectorAll('.suggestion-item')
                             .forEach(item => {
                                 item.addEventListener('click', () => {
@@ -360,53 +389,45 @@
                 this.suggestionsContainer.style.display = 'none';
             }
 
+            clearResults() {
+                this.resultsContainer.innerHTML = '';
+            }
+
             async selectCustomer(name) {
                 try {
                     const data = await this.fetchData();
-                    const customerData = data.find(row => row[0] === name);
+                    const matchingRows = data.filter(row => row[0] === name);
                     
-                    if (customerData) {
+                    if (matchingRows.length > 0) {
                         this.searchInput.value = name;
                         this.hideSuggestions();
-                        this.showCustomerDetails(customerData);
+                        this.showResults(matchingRows);
                     }
                 } catch (error) {
                     this.showError(error.message);
                 }
             }
 
-            showCustomerDetails(customerData) {
-                this.detailsGrid.innerHTML = this.headers
-                    .map((header, index) => `
-                        <div class="detail-item">
-                            <div class="detail-label">${header}</div>
-                            <div class="detail-value">${this.formatValue(customerData[index])}</div>
+            showResults(results) {
+                if (results.length === 0) {
+                    this.resultsContainer.innerHTML = `
+                        <div class="no-results">
+                            <i class="mdi mdi-alert-circle-outline"></i>
+                            <p>لم يتم العثور على نتائج</p>
                         </div>
-                    `).join('');
-
-                this.customerDetails.style.display = 'block';
-            }
-
-            formatValue(value) {
-                if (!isNaN(value) && value.toString().includes('.')) {
-                    return Number(value).toFixed(1);
+                    `;
+                    return;
                 }
-                return value;
-            }
 
-            showError(message) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: message,
-                    confirmButtonText: 'حسناً',
-                    confirmButtonColor: '#2196F3'
+                let html = '<table class="results-table">';
+                html += '<thead><tr>';
+                this.headers.forEach(header => {
+                    html += `<th>${header}</th>`;
                 });
-            }
-        }
+                html += '</tr></thead><tbody>';
 
-        // تهيئة النظام
-        const customerSearch = new CustomerSearch();
-    </script>
-</body>
-</html>
+                results.forEach(row => {
+                    html += '<tr>';
+                    row.forEach((cell, index) => {
+                        const isNumber = !isNaN(cell) && cell.toString().includes('.');
+                        const cellClass
