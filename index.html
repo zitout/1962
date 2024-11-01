@@ -47,7 +47,6 @@
             border-radius: var(--border-radius);
             padding: 2rem;
             box-shadow: var(--card-shadow);
-            transition: transform 0.3s ease;
             margin-bottom: 2rem;
         }
 
@@ -68,18 +67,12 @@
             font-size: 1.1rem;
         }
 
-        .search-box {
-            display: flex;
-            gap: 1rem;
+        .search-container {
+            position: relative;
             margin-bottom: 2rem;
         }
 
         .search-input {
-            flex: 1;
-            position: relative;
-        }
-
-        .search-input input {
             width: 100%;
             padding: 1.2rem 3rem 1.2rem 1.2rem;
             border: 2px solid #e1e8ef;
@@ -87,16 +80,15 @@
             font-size: 1.1rem;
             transition: all 0.3s ease;
             font-family: 'Cairo', sans-serif;
-            color: var(--text-primary);
         }
 
-        .search-input input:focus {
+        .search-input:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
             outline: none;
         }
 
-        .search-input i {
+        .search-icon {
             position: absolute;
             right: 1.2rem;
             top: 50%;
@@ -105,73 +97,72 @@
             font-size: 1.3rem;
         }
 
-        .search-button {
-            padding: 1.2rem 2.5rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            font-family: 'Cairo', sans-serif;
-        }
-
-        .search-button:hover {
-            background: #1976D2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
-        }
-
-        .results-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-top: 2rem;
+        .suggestions-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
             background: white;
-            border-radius: var(--border-radius);
-            overflow: hidden;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
             box-shadow: var(--card-shadow);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
         }
 
-        .results-table th {
-            background: var(--table-header-bg);
-            color: white;
-            padding: 1.2rem;
-            text-align: right;
-            font-weight: 600;
-            font-size: 1.1rem;
-            white-space: nowrap;
-        }
-
-        .results-table td {
-            padding: 1.2rem;
-            color: var(--text-primary);
-            border-bottom: 1px solid #e1e8ef;
-            font-size: 1.05rem;
-        }
-
-        .results-table tbody tr {
+        .suggestion-item {
+            padding: 1rem;
+            cursor: pointer;
             transition: background-color 0.2s ease;
+            border-bottom: 1px solid #e1e8ef;
         }
 
-        .results-table tbody tr:hover {
-            background-color: var(--table-row-hover);
-        }
-
-        .results-table tbody tr:last-child td {
+        .suggestion-item:last-child {
             border-bottom: none;
         }
 
-        /* تنسيق الأرقام في الجدول */
-        .results-table td.number-cell {
-            font-family: 'Cairo', sans-serif;
-            text-align: center;
-            direction: ltr;
+        .suggestion-item:hover {
+            background-color: var(--table-row-hover);
+        }
+
+        .customer-details {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: var(--card-shadow);
+            display: none;
+        }
+
+        .customer-details h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .detail-item {
+            background: var(--background-color);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         .loading-spinner {
@@ -182,29 +173,12 @@
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e1e8ef;
-            border-top: 4px solid var(--primary-color);
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e1e8ef;
+            border-top: 3px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-        }
-
-        .no-results i {
-            font-size: 2.5rem;
-            color: var(--secondary-color);
-            margin-bottom: 1rem;
-            display: block;
         }
 
         @keyframes spin {
@@ -212,66 +186,22 @@
             100% { transform: rotate(360deg); }
         }
 
-/* تكبير عرض الجدول على شاشات الكمبيوتر */
-@media (min-width: 1024px) {
-    .results-table {
-        width: 100%; /* استخدام كامل عرض الشاشة */
-    }
-
-    .results-table th, .results-table td {
-        font-size: 0.95rem; /* تصغير حجم النص قليلاً */
-        padding: 0.8rem;   /* تقليل التباعد بين الخلايا */
-    }
-}
-
-/* السماح بالتمرير الأفقي على الهواتف الذكية */
-@media (max-width: 768px) {
-    .results-table {
-        display: block;
-        overflow-x: auto; /* السماح بالتمرير الأفقي */
-        -webkit-overflow-scrolling: touch; /* تحسين التمرير على الأجهزة اللمسية */
-    }
-
-    .results-table th, .results-table td {
-        white-space: nowrap; /* منع التفاف النص */
-    }
-}
-
-/* زيادة حجم النص والتباعد على الشاشات الكبيرة */
-@media (min-width: 1200px) {
-    .results-table th, .results-table td {
-        font-size: 1.05rem; /* زيادة حجم النص */
-        padding: 1rem;   /* زيادة التباعد بين الخلايا */
-    }
-}
-
-            .search-box {
-                flex-direction: column;
-            }
-
-            .search-button {
-                width: 100%;
-            }
-
-            .results-table {
-                display: block;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-
+        @media (max-width: 768px) {
             .search-header h1 {
                 font-size: 2rem;
             }
 
-            .search-input input,
-            .search-button {
+            .search-input {
                 padding: 1rem;
                 font-size: 1rem;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <div class="search-card">
@@ -279,24 +209,23 @@
                 <h1>نظام البحث الذكي عن الزبائن</h1>
                 <p>ابحث عن الزبائن بسهولة وسرعة</p>
             </div>
-
-            <div class="search-box">
-                <div class="search-input">
-                    <i class="mdi mdi-magnify"></i>
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="ادخل اسم الزبون..."
-                        autocomplete="off"
-                    >
-                </div>
-                <button class="search-button">
-                    <i class="mdi mdi-search-web"></i>
-                    بحث
-                </button>
+            
+            <div class="search-container">
+                <i class="mdi mdi-magnify search-icon"></i>
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="ادخل اسم الزبون..."
+                    autocomplete="off"
+                >
+                <div class="suggestions-container" id="suggestionsContainer"></div>
             </div>
 
-            <div id="result"></div>
+            <div id="customerDetails" class="customer-details">
+                <h2>تفاصيل الزبون</h2>
+                <div class="details-grid" id="detailsGrid"></div>
+            </div>
         </div>
     </div>
 
@@ -306,30 +235,38 @@
             constructor() {
                 this.SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYssVb0l-reNB4oZ-1t_6brjDuHtCdnB6xd2MLaXUIxskRT0q6ms9m7TeoVmURzrriEfyKQWzKOcZY/pubhtml';
                 this.searchInput = document.getElementById('searchInput');
-                this.resultDiv = document.getElementById('result');
+                this.suggestionsContainer = document.getElementById('suggestionsContainer');
+                this.customerDetails = document.getElementById('customerDetails');
+                this.detailsGrid = document.getElementById('detailsGrid');
                 this.CACHE_DURATION = 1000 * 60 * 5; // 5 دقائق
                 this.lastCacheTime = null;
                 this.cachedData = null;
+                this.headers = null;
                 this.searchDelay = 300;
                 this.minSearchLength = 2;
                 this.setupEventListeners();
             }
 
             setupEventListeners() {
-                document.querySelector('.search-button').addEventListener('click', () => this.searchData());
-
                 this.searchInput.addEventListener('input', this.debounce(() => {
                     const value = this.searchInput.value.trim();
                     if (value.length >= this.minSearchLength) {
-                        this.searchData();
-                    } else if (value.length === 0) {
-                        this.resultDiv.innerHTML = '';
+                        this.showSuggestions();
+                    } else {
+                        this.hideSuggestions();
                     }
                 }, this.searchDelay));
 
-                this.searchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.searchData();
+                document.addEventListener('click', (e) => {
+                    if (!this.suggestionsContainer.contains(e.target) && 
+                        e.target !== this.searchInput) {
+                        this.hideSuggestions();
+                    }
+                });
+
+                this.searchInput.addEventListener('focus', () => {
+                    if (this.searchInput.value.trim().length >= this.minSearchLength) {
+                        this.showSuggestions();
                     }
                 });
             }
@@ -344,14 +281,14 @@
 
             async fetchData() {
                 try {
-                    if (this.cachedData && this.lastCacheTime &&
+                    if (this.cachedData && this.lastCacheTime && 
                         (Date.now() - this.lastCacheTime < this.CACHE_DURATION)) {
                         return this.cachedData;
                     }
 
                     const response = await Promise.race([
                         fetch(this.SHEET_URL),
-                        new Promise((_, reject) =>
+                        new Promise((_, reject) => 
                             setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 5000)
                         )
                     ]);
@@ -360,11 +297,12 @@
 
                     const html = await response.text();
                     const parsedData = this.parseGoogleSheet(html);
-
+                    
                     if (parsedData && parsedData.length) {
-                        this.cachedData = parsedData;
+                        this.headers = parsedData[0];
+                        this.cachedData = parsedData.slice(1);
                         this.lastCacheTime = Date.now();
-                        return parsedData;
+                        return this.cachedData;
                     } else {
                         throw new Error('البيانات غير صالحة');
                     }
@@ -378,24 +316,82 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const rows = Array.from(doc.querySelectorAll('tbody tr'));
-                return rows.map(row =>
+                return rows.map(row => 
                     Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim())
                 );
             }
 
-            formatCell(value) {
+            async showSuggestions() {
+                const searchTerm = this.searchInput.value.trim().toLowerCase();
+                if (searchTerm.length < this.minSearchLength) return;
+
+                try {
+                    const data = await this.fetchData();
+                    const matches = data
+                        .filter(row => row[0].toLowerCase().includes(searchTerm))
+                        .map(row => row[0]);
+
+                    if (matches.length > 0) {
+                        this.suggestionsContainer.innerHTML = matches
+                            .map(name => `
+                                <div class="suggestion-item" data-name="${name}">
+                                    ${name}
+                                </div>
+                            `).join('');
+
+                        this.suggestionsContainer.style.display = 'block';
+                        
+                        // إضافة مستمعي الأحداث للاقتراحات
+                        this.suggestionsContainer.querySelectorAll('.suggestion-item')
+                            .forEach(item => {
+                                item.addEventListener('click', () => {
+                                    this.selectCustomer(item.dataset.name);
+                                });
+                            });
+                    } else {
+                        this.hideSuggestions();
+                    }
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            }
+
+            hideSuggestions() {
+                this.suggestionsContainer.style.display = 'none';
+            }
+
+            async selectCustomer(name) {
+                try {
+                    const data = await this.fetchData();
+                    const customerData = data.find(row => row[0] === name);
+                    
+                    if (customerData) {
+                        this.searchInput.value = name;
+                        this.hideSuggestions();
+                        this.showCustomerDetails(customerData);
+                    }
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            }
+
+            showCustomerDetails(customerData) {
+                this.detailsGrid.innerHTML = this.headers
+                    .map((header, index) => `
+                        <div class="detail-item">
+                            <div class="detail-label">${header}</div>
+                            <div class="detail-value">${this.formatValue(customerData[index])}</div>
+                        </div>
+                    `).join('');
+
+                this.customerDetails.style.display = 'block';
+            }
+
+            formatValue(value) {
                 if (!isNaN(value) && value.toString().includes('.')) {
                     return Number(value).toFixed(1);
                 }
                 return value;
-            }
-
-            showLoading() {
-                this.resultDiv.innerHTML = `
-                    <div class="loading-spinner">
-                        <div class="spinner"></div>
-                    </div>
-                `;
             }
 
             showError(message) {
@@ -406,64 +402,6 @@
                     confirmButtonText: 'حسناً',
                     confirmButtonColor: '#2196F3'
                 });
-            }
-
-            renderResults(results, headers) {
-                if (results.length === 0) {
-                    this.resultDiv.innerHTML = `
-                        <div class="no-results">
-                            <i class="mdi mdi-alert-circle-outline"></i>
-                            <p>لم يتم العثور على نتائج</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                let html = '<div class="table-responsive"><table class="results-table">';
-                html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
-                html += '<tbody>';
-                results.forEach(row => {
-                    html += '<tr>';
-                    row.forEach((cell, index) => {
-                        const isNumber = !isNaN(cell) && cell.toString().includes('.');
-                        const cellClass = isNumber ? 'number-cell' : '';
-                        const formattedCell = this.formatCell(cell);
-                        html += `<td class="${cellClass}">${formattedCell}</td>`;
-                    });
-                    html += '</tr>';
-                });
-                html += '</tbody></table></div>';
-                this.resultDiv.innerHTML = html;
-            }
-
-            async searchData() {
-                const searchTerm = this.searchInput.value.trim();
-
-                if (!searchTerm || searchTerm.length < this.minSearchLength) {
-                    this.resultDiv.innerHTML = '';
-                    return;
-                }
-
-                this.showLoading();
-
-                try {
-                    const data = await this.fetchData();
-                    if (!data || !data.length) {
-                        throw new Error('لا توجد بيانات متاحة');
-                    }
-
-                    const headers = data[0];
-                    const searchTermLower = searchTerm.toLowerCase();
-                    const results = data.slice(1).filter(row => {
-                        const cellText = row[0].toLowerCase();
-                        return cellText.includes(searchTermLower);
-                    });
-
-                    this.renderResults(results, headers);
-                } catch (error) {
-                    this.showError(error.message);
-                    console.error('Error:', error);
-                }
             }
         }
 
