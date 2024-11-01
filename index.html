@@ -132,6 +132,7 @@ searchInput.addEventListener('input', function() {
         return;
     }
 
+    // تعديل البحث ليكون فقط في حقل "الاسم"
     const filteredClients = jsonData[0].filter(client => 
         client["الاسم"].toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -141,6 +142,7 @@ searchInput.addEventListener('input', function() {
         filteredClients.forEach(client => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
+            // عرض الاسم والمهنة فقط في قائمة الاقتراحات
             div.innerHTML = `
                 <span class="name">${client["الاسم"]}</span>
                 <span class="info">${client["المهنة"] || ''}</span>
@@ -157,6 +159,47 @@ searchInput.addEventListener('input', function() {
     }
 });
 
+function displayClientInfo(client) {
+    clientInfoDiv.innerHTML = `
+        <h2>معلومات العميل</h2>
+        <div class="info-row">
+            <span class="info-label">الاسم:</span>
+            <span class="info-value">${client["الاسم"]}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">المهنة:</span>
+            <span class="info-value">${client["المهنة"] || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">رقم الهاتف:</span>
+            <span class="info-value">${client["رقم الهاتف"] || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">CCP:</span>
+            <span class="info-value">${client["CCP"] || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">مبلغ البيع:</span>
+            <span class="info-value">${client["م.البيع"] || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">القسط:</span>
+            <span class="info-value">${client["القسط"] || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">الباقي:</span>
+            <span class="info-value">${client["الباقي"] || '-'}</span>
+        </div>
+    `;
+}
+
+// إغلاق قائمة الاقتراحات عند النقر خارجها
+document.addEventListener('click', function(e) {
+    if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+        suggestionsDiv.style.display = 'none';
+    }
+});
+        
 function displayClientInfo(client) {
     clientInfoDiv.innerHTML = `
         <div class="info-row">
