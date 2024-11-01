@@ -3,50 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام بحث العملاء</title>
+    <title>نظام إدارة العملاء</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
+        /* Reset & Base Styles */
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
             padding: 20px;
             direction: rtl;
         }
 
+        /* Container Styles */
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
         }
 
-        h1 {
+        /* Header Styles */
+        .header {
             text-align: center;
-            color: #333;
             margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 2px solid #eee;
         }
 
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+        }
+
+        /* Search Section */
         .search-container {
             position: relative;
             margin: 20px 0;
         }
 
-        #searchInput {
+        .search-input {
             width: 100%;
-            padding: 15px;
+            padding: 15px 20px;
             font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
+            border: 2px solid #e3e8ef;
+            border-radius: 10px;
+            transition: all 0.3s ease;
         }
 
+        .search-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+            outline: none;
+        }
+
+        /* Suggestions Dropdown */
         .suggestions {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: #fff;
+            border: 1px solid #e3e8ef;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             max-height: 300px;
             overflow-y: auto;
             z-index: 1000;
@@ -54,188 +80,204 @@
         }
 
         .suggestion-item {
-            padding: 12px 15px;
+            padding: 12px 20px;
             cursor: pointer;
+            border-bottom: 1px solid #f0f2f5;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #eee;
+            transition: background 0.2s ease;
         }
 
         .suggestion-item:hover {
-            background-color: #f8f9fa;
+            background-color: #f8fafc;
         }
 
         .suggestion-item .name {
-            font-weight: 500;
+            font-weight: 600;
+            color: #2c3e50;
         }
 
         .suggestion-item .info {
-            color: #666;
+            color: #7f8c8d;
             font-size: 0.9em;
         }
 
+        /* Client Info Display */
         .client-info {
-            background: white;
+            background: #fff;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 10px;
             margin-top: 20px;
+            display: none;
         }
 
         .info-row {
             display: flex;
-            margin-bottom: 10px;
-            padding: 10px;
+            padding: 12px;
             border-bottom: 1px solid #eee;
         }
 
         .info-label {
-            font-weight: bold;
             width: 150px;
-            color: #555;
+            font-weight: 600;
+            color: #34495e;
         }
 
         .info-value {
             flex: 1;
+            color: #2c3e50;
         }
 
-        mark {
-            background-color: #fff3cd;
-            padding: 2px;
-            border-radius: 2px;
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .info-row {
+                flex-direction: column;
+            }
+
+            .info-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>نظام بحث العملاء</h1>
+        <div class="header">
+            <h1>نظام إدارة العملاء</h1>
+        </div>
+        
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="ابحث عن عميل...">
+            <input type="text" 
+                   id="searchInput" 
+                   class="search-input" 
+                   placeholder="ابحث عن عميل (اكتب حرفين على الأقل)...">
             <div id="suggestions" class="suggestions"></div>
         </div>
+
         <div id="clientInfo" class="client-info"></div>
     </div>
 
     <script>
+        // تحسين أداء البحث باستخدام Debounce
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
 
-const searchInput = document.getElementById('searchInput');
-const suggestionsDiv = document.getElementById('suggestions');
-const clientInfoDiv = document.getElementById('clientInfo');
+        const searchInput = document.getElementById('searchInput');
+        const suggestionsDiv = document.getElementById('suggestions');
+        const clientInfoDiv = document.getElementById('clientInfo');
 
-searchInput.addEventListener('input', function() {
-    const searchTerm = this.value.trim();
-    suggestionsDiv.innerHTML = '';
-    
-    if (searchTerm.length < 2) {
-        suggestionsDiv.style.display = 'none';
-        return;
-    }
-
-    // تعديل البحث ليكون فقط في حقل "الاسم"
-    const filteredClients = jsonData[0].filter(client => 
-        client["الاسم"].toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (filteredClients.length > 0) {
-        suggestionsDiv.style.display = 'block';
-        filteredClients.forEach(client => {
-            const div = document.createElement('div');
-            div.className = 'suggestion-item';
-            // عرض الاسم والمهنة فقط في قائمة الاقتراحات
-            div.innerHTML = `
-                <span class="name">${client["الاسم"]}</span>
-                <span class="info">${client["المهنة"] || ''}</span>
-            `;
-            div.addEventListener('click', () => {
-                displayClientInfo(client);
-                searchInput.value = client["الاسم"];
+        // تحسين البحث مع Debounce
+        const handleSearch = debounce((searchTerm) => {
+            suggestionsDiv.innerHTML = '';
+            
+            if (searchTerm.length < 2) {
                 suggestionsDiv.style.display = 'none';
-            });
-            suggestionsDiv.appendChild(div);
-        });
-    } else {
-        suggestionsDiv.style.display = 'none';
-    }
-});
+                return;
+            }
 
-function displayClientInfo(client) {
-    clientInfoDiv.innerHTML = `
-        <h2>معلومات العميل</h2>
-        <div class="info-row">
-            <span class="info-label">الاسم:</span>
-            <span class="info-value">${client["الاسم"]}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">المهنة:</span>
-            <span class="info-value">${client["المهنة"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">رقم الهاتف:</span>
-            <span class="info-value">${client["رقم الهاتف"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">CCP:</span>
-            <span class="info-value">${client["CCP"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">مبلغ البيع:</span>
-            <span class="info-value">${client["م.البيع"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">القسط:</span>
-            <span class="info-value">${client["القسط"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">الباقي:</span>
-            <span class="info-value">${client["الباقي"] || '-'}</span>
-        </div>
-    `;
-}
+            const filteredClients = clients.filter(client => 
+                client.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
 
-// إغلاق قائمة الاقتراحات عند النقر خارجها
-document.addEventListener('click', function(e) {
-    if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
-        suggestionsDiv.style.display = 'none';
-    }
-});
+            if (filteredClients.length > 0) {
+                suggestionsDiv.style.display = 'block';
+                filteredClients.forEach(client => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerHTML = `
+                        <span class="name">${highlightMatch(client.name, searchTerm)}</span>
+                        <span class="info">${client.profession || ''}</span>
+                    `;
+                    div.addEventListener('click', () => {
+                        displayClientInfo(client);
+                        searchInput.value = client.name;
+                        suggestionsDiv.style.display = 'none';
+                    });
+                    suggestionsDiv.appendChild(div);
+                });
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        }, 300);
+
+        // تمييز نص البحث
+        function highlightMatch(text, searchTerm) {
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<mark>$1</mark>');
+        }
+
+        // عرض معلومات العميل
+        function displayClientInfo(client) {
+            clientInfoDiv.style.display = 'block';
+            clientInfoDiv.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">الاسم:</span>
+                    <span class="info-value">${client.name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">المهنة:</span>
+                    <span class="info-value">${client.profession || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الهاتف:</span>
+                    <span class="info-value">${client.phone || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">CCP:</span>
+                    <span class="info-value">${client.ccp || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">مبلغ البيع:</span>
+                    <span class="info-value">${client.saleAmount || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">القسط:</span>
+                    <span class="info-value">${client.installment || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الباقي:</span>
+                    <span class="info-value">${client.remaining || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ملاحظات:</span>
+                    <span class="info-value">${client.notes || '-'}</span>
+                </div>
+            `;
+        }
+
+        // إضافة مستمعي الأحداث
+        searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
         
-function displayClientInfo(client) {
-    clientInfoDiv.innerHTML = `
-        <div class="info-row">
-            <span class="info-label">الاسم:</span>
-            <span class="info-value">${client["الاسم"]}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">المهنة:</span>
-            <span class="info-value">${client["المهنة"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">رقم الهاتف:</span>
-            <span class="info-value">${client["رقم الهاتف"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">CCP:</span>
-            <span class="info-value">${client["CCP"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">مبلغ البيع:</span>
-            <span class="info-value">${client["م.البيع"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">القسط:</span>
-            <span class="info-value">${client["القسط"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">الباقي:</span>
-            <span class="info-value">${client["الباقي"] || '-'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">ملاحظات:</span>
-            <span class="info-value">${client["ملاحظات"] || '-'}</span>
-        </div>
-    `;
-}
+        document.addEventListener('click', (e) => {
+            if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+         
+
+
+
+
 
 // إغلاق قائمة الاقتراحات عند النقر خارجها
 document.addEventListener('click', function(e) {
@@ -41812,103 +41854,189 @@ document.addEventListener('click', function(e) {
 ]
         ];
 
-        let clientsData = [];
+      let clientsData = [];
 
-        // تهيئة التطبيق
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof jsonData !== 'undefined') {
-                clientsData = jsonData;
-                console.log('تم تحميل البيانات:', clientsData.length);
-                setupSearch();
-            } else {
-                console.error('لم يتم العثور على البيانات!');
-            }
+// تهيئة التطبيق عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof jsonData !== 'undefined') {
+        // تحويل البيانات إلى تنسيق أكثر كفاءة
+        clientsData = transformData(jsonData[0]);
+        console.log('تم تحميل البيانات:', clientsData.length);
+        setupSearch();
+    } else {
+        console.error('لم يتم العثور على البيانات!');
+    }
+});
+
+// دالة تحويل البيانات
+function transformData(data) {
+    return data.map(client => ({
+        name: client["الاسم"],
+        date: client["التاريخ"],
+        product: client["السلعة"],
+        saleAmount: client["م.البيع"],
+        mediator: client["الوسيط"],
+        profession: client["المهنة"],
+        notes: client["ملاحظات"],
+        paymentMethod: client["طريقة تس"],
+        notes2: client["ملاحضة 2"],
+        duration: client["مدة"],
+        installment: client["القسط"],
+        remaining: client["الباقي"],
+        ccp: client["CCP"],
+        phone: client["رقم الهاتف"],
+        remainingMonths: client["اشهر الباقية"],
+        paid: client["المدفوع"]
+    }));
+}
+
+// إعداد نظام البحث
+function setupSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const suggestionsDiv = document.getElementById('suggestions');
+    
+    // إضافة مستمع حدث للبحث مع تأخير
+    searchInput.addEventListener('input', debounce((e) => {
+        const query = e.target.value.trim();
+        handleSearch(query);
+    }, 300));
+
+    // إخفاء الاقتراحات عند النقر خارج منطقة البحث
+    document.addEventListener('click', (e) => {
+        if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+}
+
+// معالجة البحث
+function handleSearch(query) {
+    const suggestionsDiv = document.getElementById('suggestions');
+    suggestionsDiv.innerHTML = '';
+    
+    if (query.length < 2) {
+        suggestionsDiv.style.display = 'none';
+        return;
+    }
+
+    const results = searchClients(query);
+    displaySearchResults(results, query);
+}
+
+// البحث في البيانات
+function searchClients(query) {
+    return clientsData.filter(client => {
+        const searchTerm = query.toLowerCase();
+        return (
+            client.name.toLowerCase().includes(searchTerm) ||
+            (client.phone && client.phone.toString().includes(searchTerm)) ||
+            (client.ccp && client.ccp.toString().includes(searchTerm))
+        );
+    });
+}
+
+// عرض نتائج البحث
+function displaySearchResults(results, query) {
+    const suggestionsDiv = document.getElementById('suggestions');
+    
+    if (results.length === 0) {
+        suggestionsDiv.style.display = 'none';
+        return;
+    }
+
+    suggestionsDiv.style.display = 'block';
+    results.forEach(client => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerHTML = `
+            <div class="client-info-primary">
+                <span class="name">${highlightMatch(client.name, query)}</span>
+                <span class="profession">${client.profession || ''}</span>
+            </div>
+            <div class="client-info-secondary">
+                <span class="phone">${client.phone || ''}</span>
+                <span class="amount">${formatCurrency(client.saleAmount)}</span>
+            </div>
+        `;
+        div.addEventListener('click', () => {
+            displayClientInfo(client);
+            document.getElementById('searchInput').value = client.name;
+            suggestionsDiv.style.display = 'none';
         });
+        suggestionsDiv.appendChild(div);
+    });
+}
 
-        function setupSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const suggestionsDiv = document.getElementById('suggestions');
-            
-            searchInput.addEventListener('input', (e) => {
-                const value = e.target.value.trim();
-                
-                if (value.length < 1) {
-                    suggestionsDiv.style.display = 'none';
-                    return;
-                }
-                
-                const suggestions = searchClients(value);
-                displaySuggestions(suggestions);
-            });
+// عرض معلومات العميل
+function displayClientInfo(client) {
+    const clientInfoDiv = document.getElementById('clientInfo');
+    clientInfoDiv.style.display = 'block';
+    clientInfoDiv.innerHTML = `
+        <div class="client-header">
+            <h2>${client.name}</h2>
+            <span class="profession">${client.profession || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">رقم الهاتف:</span>
+            <span class="info-value">${client.phone || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">CCP:</span>
+            <span class="info-value">${client.ccp || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">المنتج:</span>
+            <span class="info-value">${client.product || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">مبلغ البيع:</span>
+            <span class="info-value">${formatCurrency(client.saleAmount)}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">القسط:</span>
+            <span class="info-value">${formatCurrency(client.installment)}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">المتبقي:</span>
+            <span class="info-value">${formatCurrency(client.remaining)}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">المدفوع:</span>
+            <span class="info-value">${formatCurrency(client.paid)}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">الأشهر المتبقية:</span>
+            <span class="info-value">${client.remainingMonths?.toFixed(1) || '-'}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">ملاحظات:</span>
+            <span class="info-value">${client.notes || '-'}</span>
+        </div>
+    `;
+}
 
-            // إخفاء الاقتراحات عند النقر خارج منطقة البحث
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-container')) {
-                    suggestionsDiv.style.display = 'none';
-                }
-            });
-        }
+// دوال مساعدة
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+}
 
-        function searchClients(query) {
-            if (!query) return [];
-            
-            query = query.trim().toLowerCase();
-            return clientsData
-                .filter(client => {
-                    const name = client.الاسم.toLowerCase();
-                    return (
-                        name.includes(query) ||
-                        calculateSimilarity(name, query) >= 0.4 ||
-                        name.split(' ').some(word => word.startsWith(query))
-                    );
-                })
-                .slice(0, 10);
-        }
+function highlightMatch(text, query) {
+    if (!query) return text;
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+}
 
-        function displaySuggestions(suggestions) {
-            const suggestionsDiv = document.getElementById('suggestions');
-            suggestionsDiv.innerHTML = '';
-            
-            if (suggestions.length === 0) {
-                suggestionsDiv.style.display = 'none';
-                return;
-            }
-
-            suggestionsDiv.style.display = 'block';
-            
-            suggestions.forEach(client => {
-                const div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = `
-                    <span class="name">${highlightMatch(client.الاسم, document.getElementById('searchInput').value)}</span>
-                    <span class="info">${client.المهنة || ''}</span>
-                `;
-                div.onclick = () => {
-                    document.getElementById('searchInput').value = client.الاسم;
-                    displayClientInfo(client);
-                    suggestionsDiv.style.display = 'none';
-                };
-                suggestionsDiv.appendChild(div);
-            });
-        }
-
-        function displayClientInfo(client) {
-            const clientInfoDiv = document.getElementById('clientInfo');
-            let html = '<h2>معلومات العميل</h2>';
-            
-            for (let key in client) {
-                if (client[key] !== null && client[key] !== undefined && client[key] !== '') {
-                    html += `
-                        <div class="info-row">
-                            <span class="info-label">${key}:</span>
-                            <span class="info-value">${client[key]}</span>
-                        </div>`;
-                }
-            }
-            
-            clientInfoDiv.innerHTML = html;
-        }
-
+function formatCurrency(amount) {
+    if (!amount) return '-';
+    return new Intl.NumberFormat('ar-DZ', {
+        style: 'currency',
+        currency: 'DZD'
+    }).format(amount);
+}
         function highlightMatch(text, query) {
             if (!query) return text;
             const regex = new RegExp(`(${query})`, 'gi');
