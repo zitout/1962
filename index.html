@@ -213,10 +213,14 @@
             100% { transform: rotate(360deg); }
         }
 
- /* تصغير النص والتباعد على شاشات الكمبيوتر */
-@media (min-width: 768px) {
+/* تكبير عرض الجدول على شاشات الكمبيوتر */
+@media (min-width: 1024px) {
+    .results-table {
+        width: 100%; /* استخدام كامل عرض الشاشة */
+    }
+
     .results-table th, .results-table td {
-        font-size: 0.9rem; /* تصغير حجم النص */
+        font-size: 0.95rem; /* تصغير حجم النص قليلاً */
         padding: 0.8rem;   /* تقليل التباعد بين الخلايا */
     }
 }
@@ -225,12 +229,20 @@
 @media (max-width: 768px) {
     .results-table {
         display: block;
-        overflow-x: auto; /* يسمح بالتمرير الأفقي */
+        overflow-x: auto; /* السماح بالتمرير الأفقي */
         -webkit-overflow-scrolling: touch; /* تحسين التمرير على الأجهزة اللمسية */
     }
 
     .results-table th, .results-table td {
         white-space: nowrap; /* منع التفاف النص */
+    }
+}
+
+/* زيادة حجم النص والتباعد على الشاشات الكبيرة */
+@media (min-width: 1200px) {
+    .results-table th, .results-table td {
+        font-size: 1.05rem; /* زيادة حجم النص */
+        padding: 1rem;   /* زيادة التباعد بين الخلايا */
     }
 }
 
