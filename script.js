@@ -2,20 +2,30 @@ const searchInput = document.getElementById('searchInput');
 const suggestionsDiv = document.getElementById('suggestions');
 const customerInfoDiv = document.getElementById('customerInfo');
 
-searchInput.addEventListener('input', handleSearch);
+// للتأكد من تحميل البيانات
+console.log('عدد العملاء:', customersData.length);
 
-function handleSearch(e) {
+searchInput.addEventListener('input', function(e) {
     const searchTerm = e.target.value.trim();
     suggestionsDiv.innerHTML = '';
     
+    // للتأكد من عمل وظيفة البحث
+    console.log('كلمة البحث:', searchTerm);
+
     if (searchTerm.length < 1) {
         suggestionsDiv.style.display = 'none';
         return;
     }
 
+    // تحويل كلمة البحث للأحرف الصغيرة للمقارنة
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    // البحث في الأسماء
     const matches = customersData.filter(customer => 
-        customer.الاسم.toLowerCase().includes(searchTerm.toLowerCase())
+        customer.الاسم.toLowerCase().indexOf(searchTermLower) > -1
     );
+
+    console.log('النتائج:', matches.length); // للتأكد من وجود نتائج
 
     if (matches.length > 0) {
         suggestionsDiv.style.display = 'block';
@@ -23,19 +33,19 @@ function handleSearch(e) {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
             div.textContent = customer.الاسم;
-            div.addEventListener('click', () => showCustomerInfo(customer));
+            div.onclick = () => showCustomerInfo(customer);
             suggestionsDiv.appendChild(div);
         });
     } else {
         suggestionsDiv.style.display = 'none';
     }
-}
+});
 
 function showCustomerInfo(customer) {
     searchInput.value = customer.الاسم;
     suggestionsDiv.style.display = 'none';
     
-    const infoHTML = `
+    customerInfoDiv.innerHTML = `
         <div class="info-row">
             <span class="info-label">الاسم:</span>
             <span class="info-value">${customer.الاسم}</span>
@@ -73,13 +83,16 @@ function showCustomerInfo(customer) {
             <span class="info-value">${customer['رقم الهاتف'] || 'غير متوفر'}</span>
         </div>
     `;
-    
-    customerInfoDiv.innerHTML = infoHTML;
 }
 
-// إغلاق الاقتراحات عند النقر خارجها
+// إضافة مستمع حدث للنقر خارج قائمة الاقتراحات
 document.addEventListener('click', (e) => {
     if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
         suggestionsDiv.style.display = 'none';
     }
+});
+
+// للتأكد من تحميل الصفحة بشكل كامل
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('تم تحميل الصفحة');
 });
