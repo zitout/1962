@@ -8,13 +8,13 @@ function handleSearch(e) {
     const searchTerm = e.target.value.trim();
     suggestionsDiv.innerHTML = '';
     
-    if (searchTerm.length < 2) {
+    if (searchTerm.length < 1) {
         suggestionsDiv.style.display = 'none';
         return;
     }
 
     const matches = customersData.filter(customer => 
-        customer.الاسم.includes(searchTerm)
+        customer.الاسم.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (matches.length > 0) {
