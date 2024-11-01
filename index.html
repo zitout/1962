@@ -36,6 +36,7 @@
             padding: 20px;
         }
 
+      
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -47,6 +48,7 @@
             border-radius: var(--border-radius);
             padding: 2rem;
             box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease;
             margin-bottom: 2rem;
         }
 
@@ -67,12 +69,18 @@
             font-size: 1.1rem;
         }
 
-        .search-container {
-            position: relative;
+        .search-box {
+            display: flex;
+            gap: 1rem;
             margin-bottom: 2rem;
         }
 
         .search-input {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input input {
             width: 100%;
             padding: 1.2rem 3rem 1.2rem 1.2rem;
             border: 2px solid #e1e8ef;
@@ -80,15 +88,16 @@
             font-size: 1.1rem;
             transition: all 0.3s ease;
             font-family: 'Cairo', sans-serif;
+            color: var(--text-primary);
         }
 
-        .search-input:focus {
+        .search-input input:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
             outline: none;
         }
 
-        .search-icon {
+        .search-input i {
             position: absolute;
             right: 1.2rem;
             top: 50%;
@@ -97,44 +106,37 @@
             font-size: 1.3rem;
         }
 
-        .suggestions-container {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
-            box-shadow: var(--card-shadow);
-            z-index: 1000;
-            max-height: 300px;
-            overflow-y: auto;
-            display: none;
-        }
-
-        .suggestion-item {
-            padding: 1rem;
+        .search-button {
+            padding: 1.2rem 2.5rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
             cursor: pointer;
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid #e1e8ef;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-family: 'Cairo', sans-serif;
         }
 
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        .suggestion-item:hover {
-            background-color: var(--table-row-hover);
+        .search-button:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
         }
 
         .results-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
+            margin-top: 2rem;
             background: white;
             border-radius: var(--border-radius);
             overflow: hidden;
             box-shadow: var(--card-shadow);
-            margin-top: 2rem;
         }
 
         .results-table th {
@@ -166,6 +168,7 @@
             border-bottom: none;
         }
 
+        /* تنسيق الأرقام في الجدول */
         .results-table td.number-cell {
             font-family: 'Cairo', sans-serif;
             text-align: center;
@@ -180,10 +183,10 @@
         }
 
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e1e8ef;
-            border-top: 3px solid var(--primary-color);
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e1e8ef;
+            border-top: 4px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -196,7 +199,6 @@
             background: white;
             border-radius: var(--border-radius);
             box-shadow: var(--card-shadow);
-            margin-top: 2rem;
         }
 
         .no-results i {
@@ -211,14 +213,45 @@
             100% { transform: rotate(360deg); }
         }
 
-        @media (max-width: 768px) {
-            .search-header h1 {
-                font-size: 2rem;
-            }
+/* تكبير عرض الجدول على شاشات الكمبيوتر */
+@media (min-width: 1024px) {
+    .results-table {
+        width: 100%; /* استخدام كامل عرض الشاشة */
+    }
 
-            .search-input {
-                padding: 1rem;
-                font-size: 1rem;
+    .results-table th, .results-table td {
+        font-size: 0.95rem; /* تصغير حجم النص قليلاً */
+        padding: 0.8rem;   /* تقليل التباعد بين الخلايا */
+    }
+}
+
+/* السماح بالتمرير الأفقي على الهواتف الذكية */
+@media (max-width: 768px) {
+    .results-table {
+        display: block;
+        overflow-x: auto; /* السماح بالتمرير الأفقي */
+        -webkit-overflow-scrolling: touch; /* تحسين التمرير على الأجهزة اللمسية */
+    }
+
+    .results-table th, .results-table td {
+        white-space: nowrap; /* منع التفاف النص */
+    }
+}
+
+/* زيادة حجم النص والتباعد على الشاشات الكبيرة */
+@media (min-width: 1200px) {
+    .results-table th, .results-table td {
+        font-size: 1.05rem; /* زيادة حجم النص */
+        padding: 1rem;   /* زيادة التباعد بين الخلايا */
+    }
+}
+
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .search-button {
+                width: 100%;
             }
 
             .results-table {
@@ -227,13 +260,19 @@
                 -webkit-overflow-scrolling: touch;
             }
 
-            .results-table th,
-            .results-table td {
-                white-space: nowrap;
+            .search-header h1 {
+                font-size: 2rem;
+            }
+
+            .search-input input,
+            .search-button {
+                padding: 1rem;
+                font-size: 1rem;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="search-card">
@@ -242,19 +281,23 @@
                 <p>ابحث عن الزبائن بسهولة وسرعة</p>
             </div>
             
-            <div class="search-container">
-                <i class="mdi mdi-magnify search-icon"></i>
-                <input 
-                    type="text" 
-                    class="search-input" 
-                    id="searchInput" 
-                    placeholder="ادخل اسم الزبون..."
-                    autocomplete="off"
-                >
-                <div class="suggestions-container" id="suggestionsContainer"></div>
+            <div class="search-box">
+                <div class="search-input">
+                    <i class="mdi mdi-magnify"></i>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="ادخل اسم الزبون..."
+                        autocomplete="off"
+                    >
+                </div>
+                <button class="search-button">
+                    <i class="mdi mdi-search-web"></i>
+                    بحث
+                </button>
             </div>
-
-            <div id="resultsContainer"></div>
+            
+            <div id="result"></div>
         </div>
     </div>
 
@@ -264,38 +307,30 @@
             constructor() {
                 this.SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYssVb0l-reNB4oZ-1t_6brjDuHtCdnB6xd2MLaXUIxskRT0q6ms9m7TeoVmURzrriEfyKQWzKOcZY/pubhtml';
                 this.searchInput = document.getElementById('searchInput');
-                this.suggestionsContainer = document.getElementById('suggestionsContainer');
-                this.resultsContainer = document.getElementById('resultsContainer');
+                this.resultDiv = document.getElementById('result');
                 this.CACHE_DURATION = 1000 * 60 * 5; // 5 دقائق
                 this.lastCacheTime = null;
                 this.cachedData = null;
-                this.headers = null;
                 this.searchDelay = 300;
                 this.minSearchLength = 2;
                 this.setupEventListeners();
             }
 
             setupEventListeners() {
+                document.querySelector('.search-button').addEventListener('click', () => this.searchData());
+                
                 this.searchInput.addEventListener('input', this.debounce(() => {
                     const value = this.searchInput.value.trim();
                     if (value.length >= this.minSearchLength) {
-                        this.showSuggestions();
-                    } else {
-                        this.hideSuggestions();
-                        this.clearResults();
+                        this.searchData();
+                    } else if (value.length === 0) {
+                        this.resultDiv.innerHTML = '';
                     }
                 }, this.searchDelay));
 
-                document.addEventListener('click', (e) => {
-                    if (!this.suggestionsContainer.contains(e.target) && 
-                        e.target !== this.searchInput) {
-                        this.hideSuggestions();
-                    }
-                });
-
-                this.searchInput.addEventListener('focus', () => {
-                    if (this.searchInput.value.trim().length >= this.minSearchLength) {
-                        this.showSuggestions();
+                this.searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.searchData();
                     }
                 });
             }
@@ -328,10 +363,9 @@
                     const parsedData = this.parseGoogleSheet(html);
                     
                     if (parsedData && parsedData.length) {
-                        this.headers = parsedData[0];
-                        this.cachedData = parsedData.slice(1);
+                        this.cachedData = parsedData;
                         this.lastCacheTime = Date.now();
-                        return this.cachedData;
+                        return parsedData;
                     } else {
                         throw new Error('البيانات غير صالحة');
                     }
@@ -350,67 +384,34 @@
                 );
             }
 
-            async showSuggestions() {
-                const searchTerm = this.searchInput.value.trim().toLowerCase();
-                if (searchTerm.length < this.minSearchLength) return;
-
-                try {
-                    const data = await this.fetchData();
-                    const uniqueNames = new Set(
-                        data.filter(row => row[0].toLowerCase().includes(searchTerm))
-                            .map(row => row[0])
-                    );
-
-                    if (uniqueNames.size > 0) {
-                        this.suggestionsContainer.innerHTML = Array.from(uniqueNames)
-                            .map(name => `
-                                <div class="suggestion-item" data-name="${name}">
-                                    ${name}
-                                </div>
-                            `).join('');
-
-                        this.suggestionsContainer.style.display = 'block';
-                        
-                        this.suggestionsContainer.querySelectorAll('.suggestion-item')
-                            .forEach(item => {
-                                item.addEventListener('click', () => {
-                                    this.selectCustomer(item.dataset.name);
-                                });
-                            });
-                    } else {
-                        this.hideSuggestions();
-                    }
-                } catch (error) {
-                    this.showError(error.message);
+            formatCell(value) {
+                if (!isNaN(value) && value.toString().includes('.')) {
+                    return Number(value).toFixed(1);
                 }
+                return value;
             }
 
-            hideSuggestions() {
-                this.suggestionsContainer.style.display = 'none';
+            showLoading() {
+                this.resultDiv.innerHTML = `
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                `;
             }
 
-            clearResults() {
-                this.resultsContainer.innerHTML = '';
+            showError(message) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: message,
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#2196F3'
+                });
             }
 
-            async selectCustomer(name) {
-                try {
-                    const data = await this.fetchData();
-                    const matchingRows = data.filter(row => row[0] === name);
-                    
-                    if (matchingRows.length > 0) {
-                        this.searchInput.value = name;
-                        this.hideSuggestions();
-                        this.showResults(matchingRows);
-                    }
-                } catch (error) {
-                    this.showError(error.message);
-                }
-            }
-
-            showResults(results) {
+            renderResults(results, headers) {
                 if (results.length === 0) {
-                    this.resultsContainer.innerHTML = `
+                    this.resultDiv.innerHTML = `
                         <div class="no-results">
                             <i class="mdi mdi-alert-circle-outline"></i>
                             <p>لم يتم العثور على نتائج</p>
@@ -419,44 +420,56 @@
                     return;
                 }
 
-                let html = '<ul class="results-list">';
-    results.forEach(row => {
-        const name = row[0];
-        html += `<li class="result-item" data-name="${name}">${name}</li>`;
-    });
-    html += '</ul>';
-    this.resultDiv.innerHTML = html;
+                let html = '<div class="table-responsive"><table class="results-table">';
+                html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
+                html += '<tbody>';
+                results.forEach(row => {
+                    html += '<tr>';
+                    row.forEach((cell, index) => {
+                        const isNumber = !isNaN(cell) && cell.toString().includes('.');
+                        const cellClass = isNumber ? 'number-cell' : '';
+                        const formattedCell = this.formatCell(cell);
+                        html += `<td class="${cellClass}">${formattedCell}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+                this.resultDiv.innerHTML = html;
+            }
 
-    // إضافة معالج للحدث عند الضغط على أسم
-    document.querySelectorAll('.result-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const name = item.dataset.name;
-            this.filterTable(name);
-        });
-    });
-}
+            async searchData() {
+                const searchTerm = this.searchInput.value.trim();
+                
+                if (!searchTerm || searchTerm.length < this.minSearchLength) {
+                    this.resultDiv.innerHTML = '';
+                    return;
+                }
 
-filterTable(name) {
-    const data = this.cachedData;
-    const headers = data[0];
-    const results = data.slice(1).filter(row => row[0] === name);
-    this.renderTable(results, headers);
-}
+                this.showLoading();
 
-renderTable(results, headers) {
-    let html = '<div class="table-responsive"><table class="results-table">';
-    html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
-    html += '<tbody>';
-    results.forEach(row => {
-        html += '<tr>';
-        row.forEach((cell, index) => {
-            const isNumber = !isNaN(cell) && cell.toString().includes('.');
-            const cellClass = isNumber ? 'number-cell' : '';
-            const formattedCell = this.formatCell(cell);
-            html += `<td class="${cellClass}">${formattedCell}</td>`;
-        });
-        html += '</tr>';
-    });
-    html += '</tbody></table></div>';
-    this.resultDiv.innerHTML = html;
-}
+                try {
+                    const data = await this.fetchData();
+                    if (!data || !data.length) {
+                        throw new Error('لا توجد بيانات متاحة');
+                    }
+
+                    const headers = data[0];
+                    const searchTermLower = searchTerm.toLowerCase();
+                    const results = data.slice(1).filter(row => {
+                        const cellText = row[0].toLowerCase();
+                        return cellText.includes(searchTermLower);
+                    });
+
+                    this.renderResults(results, headers);
+                } catch (error) {
+                    this.showError(error.message);
+                    console.error('Error:', error);
+                }
+            }
+        }
+
+        // تهيئة النظام
+        const customerSearch = new CustomerSearch();
+    </script>
+</body>
+</html>
