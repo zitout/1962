@@ -430,22 +430,29 @@
         }
     }
 
-    showCustomerDetails(customerData) {
-        this.detailsGrid.innerHTML = this.headers
-            .map((header, index) => `
-                <div class="detail-item">
-                    <div class="detail-label">${header}</div>
-                    <div class="detail-value">${this.formatValue(customerData[index])}</div>
-                </div>
-            `).join('');
-        this.customerDetails.style.display = 'block';
-    }
+  showCustomerDetails(customerData) {
+    this.detailsGrid.innerHTML = this.headers
+        .map((header, index) => ` 
+            <div class="detail-item">
+                <div class="detail-label">${header}</div>
+                <div class="detail-value">${this.formatValue(customerData[index], header)}</div>
+            </div>
+        `).join('');
+    this.customerDetails.style.display = 'block';
+}
 
-  formatValue(value) {
+formatValue(value, header) {  // إضافة معامل header
+    let formattedValue = value;
     if (!isNaN(value) && value.toString().includes('.')) {
-        return Number(value).toFixed(1);
+        formattedValue = Number(value).toFixed(1);
     }
-    return value;
+    
+    // إضافة التنسيق للباقي باللون الأحمر
+    if (header === 'الباقي') {
+        return `<span style="color: red">${formattedValue}</span>`;
+    }
+    
+    return formattedValue;
 }
        
     showError(message) {
