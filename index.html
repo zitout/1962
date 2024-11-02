@@ -126,6 +126,31 @@
             background-color: var(--table-row-hover);
         }
 
+        .suggestion-item {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e1e8ef;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.suggestion-item:hover {
+    background-color: rgba(33, 150, 243, 0.05);
+}
+
+.suggestion-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.suggestion-info {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
         .customer-details {
             background: white;
             border-radius: var(--border-radius);
@@ -231,179 +256,208 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        class CustomerSearch {
-            constructor() {
-                this.SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYssVb0l-reNB4oZ-1t_6brjDuHtCdnB6xd2MLaXUIxskRT0q6ms9m7TeoVmURzrriEfyKQWzKOcZY/pubhtml';
-                this.searchInput = document.getElementById('searchInput');
-                this.suggestionsContainer = document.getElementById('suggestionsContainer');
-                this.customerDetails = document.getElementById('customerDetails');
-                this.detailsGrid = document.getElementById('detailsGrid');
-                this.CACHE_DURATION = 1000 * 60 * 5; // 5 دقائق
-                this.lastCacheTime = null;
-                this.cachedData = null;
-                this.headers = null;
-                this.searchDelay = 300;
-                this.minSearchLength = 2;
-                this.setupEventListeners();
+   class CustomerSearch {
+    constructor() {
+        this.SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYssVb0l-reNB4oZ-1t_6brjDuHtCdnB6xd2MLaXUIxskRT0q6ms9m7TeoVmURzrriEfyKQWzKOcZY/pubhtml';
+        this.searchInput = document.getElementById('searchInput');
+        this.suggestionsContainer = document.getElementById('suggestionsContainer');
+        this.customerDetails = document.getElementById('customerDetails');
+        this.detailsGrid = document.getElementById('detailsGrid');
+        this.CACHE_DURATION = 1000 * 60 * 5; // 5 دقائق
+        this.lastCacheTime = null;
+        this.cachedData = null;
+        this.headers = null;
+        this.searchDelay = 300;
+        this.minSearchLength = 2;
+        
+        // إضافة مصفوفة الألوان للتمييز بين النتائج المتكررة
+        this.colors = [
+            '#2196F3', // أزرق
+            '#4CAF50', // أخضر
+            '#FFC107', // أصفر
+            '#9C27B0', // بنفسجي
+            '#FF5722', // برتقالي
+            '#607D8B', // رمادي مزرق
+            '#E91E63', // وردي
+            '#795548'  // بني
+        ];
+
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        this.searchInput.addEventListener('input', this.debounce(() => {
+            const value = this.searchInput.value.trim();
+            if (value.length >= this.minSearchLength) {
+                this.showSuggestions();
+            } else {
+                this.hideSuggestions();
+            }
+        }, this.searchDelay));
+
+        document.addEventListener('click', (e) => {
+            if (!this.suggestionsContainer.contains(e.target) && e.target !== this.searchInput) {
+                this.hideSuggestions();
+            }
+        });
+
+        this.searchInput.addEventListener('focus', () => {
+            if (this.searchInput.value.trim().length >= this.minSearchLength) {
+                this.showSuggestions();
+            }
+        });
+    }
+
+    debounce(func, wait) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    async fetchData() {
+        try {
+            if (this.cachedData && this.lastCacheTime && (Date.now() - this.lastCacheTime < this.CACHE_DURATION)) {
+                return this.cachedData;
             }
 
-            setupEventListeners() {
-                this.searchInput.addEventListener('input', this.debounce(() => {
-                    const value = this.searchInput.value.trim();
-                    if (value.length >= this.minSearchLength) {
-                        this.showSuggestions();
-                    } else {
-                        this.hideSuggestions();
-                    }
-                }, this.searchDelay));
+            const response = await Promise.race([
+                fetch(this.SHEET_URL),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 5000))
+            ]);
 
-                document.addEventListener('click', (e) => {
-                    if (!this.suggestionsContainer.contains(e.target) && 
-                        e.target !== this.searchInput) {
-                        this.hideSuggestions();
-                    }
-                });
+            if (!response.ok) throw new Error('فشل في تحميل البيانات');
 
-                this.searchInput.addEventListener('focus', () => {
-                    if (this.searchInput.value.trim().length >= this.minSearchLength) {
-                        this.showSuggestions();
-                    }
-                });
+            const html = await response.text();
+            const parsedData = this.parseGoogleSheet(html);
+
+            if (parsedData && parsedData.length) {
+                this.headers = parsedData[0];
+                this.cachedData = parsedData.slice(1);
+                this.lastCacheTime = Date.now();
+                return this.cachedData;
+            } else {
+                throw new Error('البيانات غير صالحة');
             }
-
-            debounce(func, wait) {
-                let timeout;
-                return (...args) => {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => func.apply(this, args), wait);
-                };
-            }
-
-            async fetchData() {
-                try {
-                    if (this.cachedData && this.lastCacheTime && 
-                        (Date.now() - this.lastCacheTime < this.CACHE_DURATION)) {
-                        return this.cachedData;
-                    }
-
-                    const response = await Promise.race([
-                        fetch(this.SHEET_URL),
-                        new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 5000)
-                        )
-                    ]);
-
-                    if (!response.ok) throw new Error('فشل في تحميل البيانات');
-
-                    const html = await response.text();
-                    const parsedData = this.parseGoogleSheet(html);
-                    
-                    if (parsedData && parsedData.length) {
-                        this.headers = parsedData[0];
-                        this.cachedData = parsedData.slice(1);
-                        this.lastCacheTime = Date.now();
-                        return this.cachedData;
-                    } else {
-                        throw new Error('البيانات غير صالحة');
-                    }
-                } catch (error) {
-                    if (this.cachedData) return this.cachedData;
-                    throw error;
-                }
-            }
-
-            parseGoogleSheet(html) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const rows = Array.from(doc.querySelectorAll('tbody tr'));
-                return rows.map(row => 
-                    Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim())
-                );
-            }
-
-            async showSuggestions() {
-                const searchTerm = this.searchInput.value.trim().toLowerCase();
-                if (searchTerm.length < this.minSearchLength) return;
-
-                try {
-                    const data = await this.fetchData();
-                    const matches = data
-                        .filter(row => row[0].toLowerCase().includes(searchTerm))
-                        .map(row => row[0]);
-
-                    if (matches.length > 0) {
-                        this.suggestionsContainer.innerHTML = matches
-                            .map(name => `
-                                <div class="suggestion-item" data-name="${name}">
-                                    ${name}
-                                </div>
-                            `).join('');
-
-                        this.suggestionsContainer.style.display = 'block';
-                        
-                        // إضافة مستمعي الأحداث للاقتراحات
-                        this.suggestionsContainer.querySelectorAll('.suggestion-item')
-                            .forEach(item => {
-                                item.addEventListener('click', () => {
-                                    this.selectCustomer(item.dataset.name);
-                                });
-                            });
-                    } else {
-                        this.hideSuggestions();
-                    }
-                } catch (error) {
-                    this.showError(error.message);
-                }
-            }
-
-            hideSuggestions() {
-                this.suggestionsContainer.style.display = 'none';
-            }
-
-            async selectCustomer(name) {
-                try {
-                    const data = await this.fetchData();
-                    const customerData = data.find(row => row[0] === name);
-                    
-                    if (customerData) {
-                        this.searchInput.value = name;
-                        this.hideSuggestions();
-                        this.showCustomerDetails(customerData);
-                    }
-                } catch (error) {
-                    this.showError(error.message);
-                }
-            }
-
-            showCustomerDetails(customerData) {
-                this.detailsGrid.innerHTML = this.headers
-                    .map((header, index) => `
-                        <div class="detail-item">
-                            <div class="detail-label">${header}</div>
-                            <div class="detail-value">${this.formatValue(customerData[index])}</div>
-                        </div>
-                    `).join('');
-
-                this.customerDetails.style.display = 'block';
-            }
-
-            formatValue(value) {
-                if (!isNaN(value) && value.toString().includes('.')) {
-                    return Number(value).toFixed(1);
-                }
-                return value;
-            }
-
-            showError(message) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: message,
-                    confirmButtonText: 'حسناً',
-                    confirmButtonColor: '#2196F3'
-                });
-            }
+        } catch (error) {
+            if (this.cachedData) return this.cachedData;
+            throw error;
         }
+    }
+
+    parseGoogleSheet(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const rows = Array.from(doc.querySelectorAll('tbody tr'));
+        return rows.map(row => Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim()));
+    }
+
+    async showSuggestions() {
+        const searchTerm = this.searchInput.value.trim().toLowerCase();
+        if (searchTerm.length < this.minSearchLength) return;
+
+        try {
+            const data = await this.fetchData();
+            const matches = data
+                .map((row, index) => ({
+                    name: row[0],
+                    index: index,
+                    additionalInfo: row[1] || '' // معلومات إضافية من العمود الثاني
+                }))
+                .filter(item => item.name.toLowerCase().includes(searchTerm));
+
+            if (matches.length > 0) {
+                // تجميع النتائج المتشابهة
+                const groupedMatches = matches.reduce((groups, match) => {
+                    const name = match.name;
+                    if (!groups[name]) {
+                        groups[name] = [];
+                    }
+                    groups[name].push(match);
+                    return groups;
+                }, {});
+
+                // إنشاء HTML للاقتراحات
+                let suggestionsHTML = '';
+                Object.entries(groupedMatches).forEach(([name, items]) => {
+                    items.forEach((item, idx) => {
+                        const colorIndex = idx % this.colors.length;
+                        suggestionsHTML += `
+                            <div class="suggestion-item" 
+                                 data-index="${item.index}"
+                                 style="border-right: 4px solid ${this.colors[colorIndex]}">
+                                <div class="suggestion-name">${item.name}</div>
+                                <div class="suggestion-info">${item.additionalInfo}</div>
+                            </div>
+                        `;
+                    });
+                });
+
+                this.suggestionsContainer.innerHTML = suggestionsHTML;
+                this.suggestionsContainer.style.display = 'block';
+
+                // إضافة مستمعي الأحداث للاقتراحات
+                this.suggestionsContainer.querySelectorAll('.suggestion-item')
+                    .forEach(item => {
+                        item.addEventListener('click', () => {
+                            this.selectCustomer(parseInt(item.dataset.index));
+                        });
+                    });
+            } else {
+                this.hideSuggestions();
+            }
+        } catch (error) {
+            this.showError(error.message);
+        }
+    }
+
+    hideSuggestions() {
+        this.suggestionsContainer.style.display = 'none';
+    }
+
+    async selectCustomer(index) {
+        try {
+            const data = await this.fetchData();
+            const customerData = data[index];
+            if (customerData) {
+                this.searchInput.value = customerData[0];
+                this.hideSuggestions();
+                this.showCustomerDetails(customerData);
+            }
+        } catch (error) {
+            this.showError(error.message);
+        }
+    }
+
+    showCustomerDetails(customerData) {
+        this.detailsGrid.innerHTML = this.headers
+            .map((header, index) => `
+                <div class="detail-item">
+                    <div class="detail-label">${header}</div>
+                    <div class="detail-value">${this.formatValue(customerData[index])}</div>
+                </div>
+            `).join('');
+        this.customerDetails.style.display = 'block';
+    }
+
+    formatValue(value) {
+        if (!isNaN(value) && value.toString().includes('.')) {
+            return Number(value).toFixed(1);
+        }
+        return value;
+    }
+
+    showError(message) {
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ',
+            text: message,
+            confirmButtonText: 'حسناً',
+            confirmButtonColor: '#2196F3'
+        });
+    }
+}
 
         // تهيئة النظام
         const customerSearch = new CustomerSearch();
