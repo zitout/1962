@@ -441,13 +441,17 @@
         this.customerDetails.style.display = 'block';
     }
 
-    formatValue(value) {
-        if (!isNaN(value) && value.toString().includes('.')) {
-            return Number(value).toFixed(1);
-        }
-        return value;
-    }
-
+    showCustomerDetails(customerData) {
+    this.detailsGrid.innerHTML = this.headers
+        .map((header, index) => ` 
+            <div class="detail-item">
+                <div class="detail-label">${header}</div>
+                <div class="detail-value" ${header === 'الباقي' ? 'style="color: red;"' : ''}>${this.formatValue(customerData[index])}</div>
+            </div>
+        `).join('');
+    this.customerDetails.style.display = 'block';
+}
+       
     showError(message) {
         Swal.fire({
             icon: 'error',
