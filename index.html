@@ -20,7 +20,6 @@
             --text-primary: #2c3e50;
             --text-secondary: #596777;
             --border-radius: 12px;
-            --highlight-color: #fff3cd;
         }
 
         * {
@@ -115,7 +114,7 @@
         .suggestion-item {
             padding: 1rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease;
             border-bottom: 1px solid #e1e8ef;
         }
 
@@ -125,13 +124,6 @@
 
         .suggestion-item:hover {
             background-color: var(--table-row-hover);
-        }
-
-        .suggestion-item .matched-text {
-            background-color: var(--highlight-color);
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-            font-weight: 600;
         }
 
         .customer-details {
@@ -239,222 +231,244 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        class CustomerSearch {
-            constructor() {
-                this.SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYssVb0l-reNB4oZ-1t_6brjDuHtCdnB6xd2MLaXUIxskRT0q6ms9m7TeoVmURzrriEfyKQWzKOcZY/pubhtml';
-                this.searchInput = document.getElementById('searchInput');
-                this.suggestionsContainer = document.getElementById('suggestionsContainer');
-                this.customerDetails = document.getElementById('customerDetails');
-                this.detailsGrid = document.getElementById('detailsGrid');
-                this.CACHE_DURATION = 1000 * 60 * 5; // 5 دقائق
-                this.lastCacheTime = null;
-                this.cachedData = null;
-                this.headers = null;
-                this.searchDelay = 300;
-                this.minSearchLength = 2;
-                this.setupEventListeners();
-            }
-
-            setupEventListeners() {
-                this.searchInput.addEventListener('input', this.debounce(() => {
-                    const value = this.searchInput.value.trim();
-                    if (value.length >= this.minSearchLength) {
-                        this.showSuggestions();
-                    } else {
-                        this.hideSuggestions();
-                    }
-                }, this.searchDelay));
-
-                document.addEventListener('click', (e) => {
-                    if (!this.suggestionsContainer.contains(e.target) && 
-                        e.target !== this.searchInput) {
-                        this.hideSuggestions();
-                    }
-                });
-
-                this.searchInput.addEventListener('focus', () => {
-                    if (this.searchInput.value.trim().length >= this.minSearchLength) {
-                        this.showSuggestions();
-                    }
-                });
-            }
-
-            debounce(func, wait) {
-                let timeout;
-                return (...args) => {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => func.apply(this, args), wait);
-                };
-            }
-
-            async fetchData() {
-                try {
-                    if (this.cachedData && this.lastCacheTime && 
-                        (Date.now() - this.lastCacheTime < this.CACHE_DURATION)) {
-                        return this.cachedData;
-                    }
-
-                    const response = await Promise.race([
-                        fetch(this.SHEET_URL),
-                        new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 5000)
-                        )
-                    ]);
-
-                    if (!response.ok) throw new Error('فشل في تحميل البيانات');
-
-                    const html = await response.text();
-                    const parsedData = this.parseGoogleSheet(html);
-                    
-                    if (parsedData && parsedData.length) {
-                        this.headers = parsedData[0];
-                        this.cachedData = parsedData.slice(1);
-                        this.lastCacheTime = Date.now();
-                        return this.cachedData;
-                    } else {
-                        throw new Error('البيانات غير صالحة');
-                    }
-                } catch (error) {
-                    if (this.cachedData) return this.cachedData;
-                    throw error;
-                }
-            }
-
-            parseGoogleSheet(html) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const rows = Array.from(doc.querySelectorAll('tbody tr'));
-                return rows.map(row => 
-                    Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim())
-                );
-            }
-
-            // تحسين البحث للتعامل مع الأسماء المتعددة
-            searchNames(searchTerm, fullName) {
-                const searchTerms = searchTerm.toLowerCase().split(/\s+/);
-                const nameWords = fullName.toLowerCase().split(/\s+/);
-                
-                // البحث في كل كلمات الاسم
-                return searchTerms.every(term => 
-                    nameWords.some(word => word.includes(term))
-                );
-            }
-
-            // تمييز النص المطابق في الاسم
-            highlightMatch(fullName, searchTerm) {
-                const searchTerms = searchTerm.toLowerCase().split(/\s+/);
-                let highlightedName = fullName;
-
-                searchTerms.forEach(term => {
-                    const regex = new RegExp(`(\\b\\w*${term}\\w*\\b)`, 'gi');
-                    highlightedName = highlightedName.replace(regex, '<span class="matched-text">$1</span>');
-                });
-
-                return highlightedName;
-            }
-
-            async showSuggestions() {
-                const searchTerm = this.searchInput.value.trim();
-                if (searchTerm.length < this.minSearchLength) return;
-
-                try {
-                    const data = await this.fetchData();
-                    const matches = data.filter(row => this.searchNames(searchTerm, row[0]))
-                        .sort((a, b) => {
-                            // ترتيب النتائج حسب مدى تطابق البحث
-                            const aScore = this.getMatchScore(a[0], searchTerm);
-                            const bScore = this.getMatchScore(b[0], searchTerm);
-                            return bScore - aScore;
-                        });
-
-                    if (matches.length > 0) {
-                        this.suggestionsContainer.innerHTML = matches
-                            .map(row => `
-                                <div class="suggestion-item" data-name="${row[0]}">
-                                    ${this.highlightMatch(row[0], searchTerm)}
-                                </div>
-                            `).join('');
-
-                        this.suggestionsContainer.style.display = 'block';
-                        
-                        this.suggestionsContainer.querySelectorAll('.suggestion-item')
-                            .forEach(item => {
-                                item.addEventListener('click', () => {
-                                    this.selectCustomer(item.dataset.name);
-                                });
-                            });
-                    } else {
-                        this.hideSuggestions();
-                    }
-                } catch (error) {
-                    this.showError(error.message);
-                }
-            }
-
-            // حساب درجة تطابق النتيجة
-            getMatchScore(fullName, searchTerm) {
-                const searchTerms = searchTerm.toLowerCase().split(/\s+/);
-                const nameWords = fullName.toLowerCase().split(/\s+/);
-                
-                let score = 0;
-                searchTerms.forEach(term => {
-                    nameWords.forEach(word => {
-                    // حساب درجة تطابق النتيجة
-getMatchScore(fullName, searchTerm) {
-    const searchTerms = searchTerm.toLowerCase().split(/\s+/);
-    const nameWords = fullName.toLowerCase().split(/\s+/);
-    let score = 0;
-    searchTerms.forEach(term => {
-        nameWords.forEach(word => {
-            if (word === term) score += 3; // تطابق كامل
-            else if (word.startsWith(term)) score += 2; // يبدأ بنفس المصطلح
-            else if (word.includes(term)) score += 1; // يحتوي على المصطلح
-        });
-    });
-    return score;
-}
-
-hideSuggestions() {
-    this.suggestionsContainer.style.display = 'none';
-    this.suggestionsContainer.innerHTML = '';
-}
-
-async selectCustomer(name) {
-    try {
-        const data = await this.fetchData();
-        const customer = data.find(row => row[0] === name);
-        
-        if (customer) {
-            this.searchInput.value = name;
-            this.displayCustomerDetails(customer);
-        }
-        this.hideSuggestions();
-    } catch (error) {
-        this.showError(error.message);
+      class CustomerSearch {
+    constructor() {
+        this.SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYssVb0l-reNB4oZ-1t_6brjDuHtCdnB6xd2MLaXUIxskRT0q6ms9m7TeoVmURzrriEfyKQWzKOcZY/pubhtml';
+        this.searchInput = document.getElementById('searchInput');
+        this.suggestionsContainer = document.getElementById('suggestionsContainer');
+        this.customerDetails = document.getElementById('customerDetails');
+        this.detailsGrid = document.getElementById('detailsGrid');
+        this.CACHE_DURATION = 1000 * 60 * 5; // 5 دقائق
+        this.lastCacheTime = null;
+        this.cachedData = null;
+        this.headers = null;
+        this.searchDelay = 300;
+        this.minSearchLength = 2;
+        this.setupEventListeners();
     }
-}
 
-displayCustomerDetails(customer) {
-    this.customerDetails.style.display = 'block';
-    this.detailsGrid.innerHTML = this.headers.map((header, index) => `
-        <div class="detail-item">
-            <div class="detail-label">${header}</div>
-            <div class="detail-value">${customer[index] || 'غير متوفر'}</div>
-        </div>
-    `).join('');
-}
+    setupEventListeners() {
+        this.searchInput.addEventListener('input', this.debounce(() => {
+            const value = this.searchInput.value.trim();
+            if (value.length >= this.minSearchLength) {
+                this.showSuggestions();
+            } else {
+                this.hideSuggestions();
+            }
+        }, this.searchDelay));
 
-showError(message) {
-    Swal.fire({
-        icon: 'error',
-        title: 'خطأ',
-        text: message,
-        confirmButtonText: 'حسناً',
-        confirmButtonColor: '#2196F3'
-    });
-}
+        document.addEventListener('click', (e) => {
+            if (!this.suggestionsContainer.contains(e.target) && e.target !== this.searchInput) {
+                this.hideSuggestions();
+            }
+        });
+
+        this.searchInput.addEventListener('focus', () => {
+            if (this.searchInput.value.trim().length >= this.minSearchLength) {
+                this.showSuggestions();
+            }
+        });
+    }
+
+    debounce(func, wait) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    async fetchData() {
+        try {
+            if (this.cachedData && this.lastCacheTime && (Date.now() - this.lastCacheTime < this.CACHE_DURATION)) {
+                return this.cachedData;
+            }
+            const response = await Promise.race([
+                fetch(this.SHEET_URL),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 5000))
+            ]);
+            if (!response.ok) throw new Error('فشل في تحميل البيانات');
+            const html = await response.text();
+            const parsedData = this.parseGoogleSheet(html);
+            if (parsedData && parsedData.length) {
+                this.headers = parsedData[0];
+                this.cachedData = parsedData.slice(1);
+                this.lastCacheTime = Date.now();
+                return this.cachedData;
+            } else {
+                throw new Error('البيانات غير صالحة');
+            }
+        } catch (error) {
+            if (this.cachedData) return this.cachedData;
+            throw error;
+        }
+    }
+
+    parseGoogleSheet(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const rows = Array.from(doc.querySelectorAll('tbody tr'));
+        return rows.map(row => Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim()));
+    }
+
+    // تحسين البحث للتعامل مع الأسماء المتعددة
+    searchNames(searchTerm, fullName) {
+        const searchTerms = searchTerm.toLowerCase().split(/\s+/);
+        const nameWords = fullName.toLowerCase().split(/\s+/);
+        // البحث في كل كلمات الاسم
+        return searchTerms.every(term => nameWords.some(word => word.includes(term)));
+    }
+
+    // تمييز النص المطابق في الاسم
+    highlightMatch(fullName, searchTerm) {
+        const searchTerms = searchTerm.toLowerCase().split(/\s+/);
+        let highlightedName = fullName;
+        searchTerms.forEach(term => {
+            const regex = new RegExp(`(\\b\\w*${term}\\w*\\b)`, 'gi');
+            highlightedName = highlightedName.replace(regex, '<span class="matched-text">$1</span>');
+        });
+        return highlightedName;
+    }
+
+    async showSuggestions() {
+        const searchTerm = this.searchInput.value.trim();
+        if (searchTerm.length < this.minSearchLength) return;
+        try {
+            const data = await this.fetchData();
+            const matches = data.filter(row => this.searchNames(searchTerm, row[0]))
+                .sort((a, b) => {
+                    // ترتيب النتائج حسب مدى تطابق البحث
+                    const aScore = this.getMatchScore(a[0], searchTerm);
+                    const bScore = this.getMatchScore(b[0], searchTerm);
+                    return bScore - aScore;
+                });
+
+            if (matches.length > 0) {
+                this.suggestionsContainer.innerHTML = matches
+                    .map(row => `
+                        <div class="suggestion-item" data-name="${row[0]}">
+                            ${this.highlightMatch(row[0], searchTerm)}
+                        </div>
+                    `).join('');
+                this.suggestionsContainer.style.display = 'block';
+                this.suggestionsContainer.querySelectorAll('.suggestion-item')
+                    .forEach(item => {
+                        item.addEventListener('click', () => {
+                            this.selectCustomer(item.dataset.name);
+                        });
+                    });
+            } else {
+                this.hideSuggestions();
+            }
+        } catch (error) {
+            this.showError(error.message);
+        }
+    }
+
+    // حساب درجة تطابق النتيجة
+    getMatchScore(fullName, searchTerm) {
+        const searchTerms = searchTerm.toLowerCase().split(/\s+/);
+        const nameWords = fullName.toLowerCase().split(/\s+/);
+        let score = 0;
+        searchTerms.forEach(term => {
+            nameWords.forEach(word => {
+                if (word === term) score += 3;       // تطابق كامل
+                else if (word.startsWith(term)) score += 2; // يبدأ بنفس المصطلح
+                else if (word.includes(term)) score += 1; // يحتوي على المصطلح
+            });
+        });
+        return score;
+    }
+
+    hideSuggestions() {
+        this.suggestionsContainer.style.display = 'none';
+        this.suggestionsContainer.innerHTML = '';
+    }
+
+    async selectCustomer(name) {
+        try {
+            const data = await this.fetchData();
+            const matchingCustomers = data.filter(row => row[0] === name);
+            
+            if (matchingCustomers.length === 1) {
+                // إذا كان هناك سجل واحد فقط، اعرض التفاصيل مباشرة
+                this.searchInput.value = name;
+                this.displayCustomerDetails(matchingCustomers[0]);
+            } else if (matchingCustomers.length > 1) {
+                // إذا كان هناك عدة سجلات، اعرض قائمة للاختيار
+                this.presentCustomerOptions(matchingCustomers);
+            }
+            this.hideSuggestions();
+        } catch (error) {
+            this.showError(error.message);
+        }
+    }
+
+    presentCustomerOptions(customers) {
+        const customerOptions = customers.map((customer, index) => {
+            // تعديل الحقول المستخدمة للتمييز بين السجلات حسب الحاجة
+            return {
+                title: customer[0], // اسم الزبون
+                text: `رقم الهاتف: ${customer[1]} - البريد الإلكتروني: ${customer[2]}`, // مثال على تفاصيل إضافية
+                value: index
+            };
+        });
+
+        Swal.fire({
+            title: 'اختر السجل المطلوب',
+            icon: 'info',
+            html: `
+                <ul style="list-style: none; padding: 0;">
+                    ${customerOptions.map((option, index) => `
+                        <li style="margin-bottom: 10px;">
+                            <button class="swal2-confirm swal2-styled" style="width: 100%;" onclick="window.selectCustomerOption(${index})">
+                                ${option.title} - ${option.text}
+                            </button>
+                        </li>
+                    `).join('')}
+                </ul>
+            `,
+            showConfirmButton: false,
+            allowOutsideClick: false
+        });
+
+        // تخزين الخيارات في النافذة لاستخدامها عند الاختيار
+        window.currentCustomerOptions = customers;
+    }
+
+    displayCustomerDetails(customer) {
+        this.customerDetails.style.display = 'block';
+        this.detailsGrid.innerHTML = this.headers.map((header, index) => `
+            <div class="detail-item">
+                <div class="detail-label">${header}</div>
+                <div class="detail-value">${customer[index] || 'غير متوفر'}</div>
+            </div>
+        `).join('');
+    }
+
+    // دالة لاختيار الخيار من النافذة المنبثقة
+    selectCustomerOption(index) {
+        const selectedCustomer = window.currentCustomerOptions[index];
+        this.searchInput.value = selectedCustomer[0];
+        this.displayCustomerDetails(selectedCustomer);
+        Swal.close();
+    }
+
+    showError(message) {
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ',
+            text: message,
+            confirmButtonText: 'حسناً',
+            confirmButtonColor: '#2196F3'
+        });
+    }
 }
 
 // تهيئة النظام
 const customerSearch = new CustomerSearch();
-                                      
+
+// ربط الدالة العالمية لاستخدامها في النافذة المنبثقة
+window.selectCustomerOption = function(index) {
+    customerSearch.selectCustomerOption(index);
+};
