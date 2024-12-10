@@ -225,6 +225,77 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .sales-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.sale-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+}
+
+.sale-header {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e1e8ef;
+}
+
+.sale-details {
+    display: grid;
+    gap: 1rem;
+}
+
+      .sales-by-type {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+.type-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+}
+.type-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e1e8ef;
+}
+.type-values {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+.value-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: var(--background-color);
+    border-radius: 6px;
+}
+.sale-number {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+.sale-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+        
     </style>
 </head>
 <body>
@@ -353,64 +424,61 @@
         return rows.map(row => Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim()));
     }
 
-    async showSuggestions() {
-        const searchTerm = this.searchInput.value.trim().toLowerCase();
-        if (searchTerm.length < this.minSearchLength) return;
+   async showSuggestions() {
+    const searchTerm = this.searchInput.value.trim().toLowerCase();
+    if (searchTerm.length < this.minSearchLength) return;
 
-        try {
-            const data = await this.fetchData();
-            const matches = data
-                .map((row, index) => ({
-                    name: row[0],
-                    index: index,
-                    additionalInfo: row[1] || '' // معلومات إضافية من العمود الثاني
-                }))
-                .filter(item => item.name.toLowerCase().includes(searchTerm));
-
-            if (matches.length > 0) {
-                // تجميع النتائج المتشابهة
-                const groupedMatches = matches.reduce((groups, match) => {
-                    const name = match.name;
-                    if (!groups[name]) {
-                        groups[name] = [];
-                    }
-                    groups[name].push(match);
-                    return groups;
-                }, {});
-
-                // إنشاء HTML للاقتراحات
-                let suggestionsHTML = '';
-                Object.entries(groupedMatches).forEach(([name, items]) => {
-                    items.forEach((item, idx) => {
-                        const colorIndex = idx % this.colors.length;
-                        suggestionsHTML += `
-                            <div class="suggestion-item" 
-                                 data-index="${item.index}"
-                                 style="border-right: 4px solid ${this.colors[colorIndex]}">
-                                <div class="suggestion-name">${item.name}</div>
-                                <div class="suggestion-info">${item.additionalInfo}</div>
-                            </div>
-                        `;
-                    });
-                });
-
-                this.suggestionsContainer.innerHTML = suggestionsHTML;
-                this.suggestionsContainer.style.display = 'block';
-
-                // إضافة مستمعي الأحداث للاقتراحات
-                this.suggestionsContainer.querySelectorAll('.suggestion-item')
-                    .forEach(item => {
-                        item.addEventListener('click', () => {
-                            this.selectCustomer(parseInt(item.dataset.index));
-                        });
-                    });
-            } else {
-                this.hideSuggestions();
+    try {
+        const data = await this.fetchData();
+        // تجميع النتائج حسب الاسم
+        const groupedData = data.reduce((acc, row) => {
+            const name = row[0].toLowerCase();
+            if (name.includes(searchTerm)) {
+                if (!acc[name]) {
+                    acc[name] = {
+                        name: row[0],
+                        count: 1,
+                        indices: [data.indexOf(row)]
+                    };
+                } else {
+                    acc[name].count++;
+                    acc[name].indices.push(data.indexOf(row));
+                }
             }
-        } catch (error) {
-            this.showError(error.message);
+            return acc;
+        }, {});
+
+        if (Object.keys(groupedData).length > 0) {
+            let suggestionsHTML = '';
+            Object.values(groupedData).forEach((item, idx) => {
+                const colorIndex = idx % this.colors.length;
+                suggestionsHTML += `
+                    <div class="suggestion-item" data-name="${item.name}" data-indices="${item.indices.join(',')}" 
+                         style="border-right: 4px solid ${this.colors[colorIndex]}">
+                        <div class="suggestion-name">${item.name}</div>
+                        <div class="suggestion-info">عدد البيعات: ${item.count}</div>
+                    </div>
+                `;
+            });
+            
+            this.suggestionsContainer.innerHTML = suggestionsHTML;
+            this.suggestionsContainer.style.display = 'block';
+
+            // إضافة أحداث النقر
+            this.suggestionsContainer.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const indices = item.dataset.indices.split(',').map(Number);
+                    this.showCustomerSales(indices);
+                });
+            });
+        } else {
+            this.hideSuggestions();
         }
+    } catch (error) {
+        this.showError(error.message);
     }
+}
+       
 
     hideSuggestions() {
         this.suggestionsContainer.style.display = 'none';
@@ -429,6 +497,55 @@
             this.showError(error.message);
         }
     }
+
+     async showCustomerSales(indices) {
+    try {
+        const data = await this.fetchData();
+        const customerName = data[indices[0]][0];
+        this.searchInput.value = customerName;
+        this.hideSuggestions();
+
+        // تجميع البيانات حسب النوع
+        let salesByType = {};
+        this.headers.forEach((header, headerIndex) => {
+            salesByType[header] = indices.map((index, idx) => ({
+                value: data[index][headerIndex],
+                saleNumber: idx + 1,
+                color: this.colors[idx % this.colors.length]
+            }));
+        });
+
+        // إنشاء العرض المجمع
+        let salesHTML = `<h2>تفاصيل بيعات ${customerName}</h2>`;
+        salesHTML += '<div class="sales-by-type">';
+        
+        Object.entries(salesByType).forEach(([header, values]) => {
+            if (header === customerName) return; // تخطي عمود الاسم
+
+            salesHTML += `
+                <div class="type-card">
+                    <div class="type-header">${header}</div>
+                    <div class="type-values">
+                        ${values.map(item => `
+                            <div class="value-item" style="border-right: 3px solid ${item.color}">
+                                <span class="sale-number">بيعة ${item.saleNumber}</span>
+                                <span class="sale-value">${this.formatValue(item.value, header)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        salesHTML += '</div>';
+        this.customerDetails.innerHTML = salesHTML;
+        this.customerDetails.style.display = 'block';
+    } catch (error) {
+        this.showError(error.message);
+    }
+}
+       
+       
 
   showCustomerDetails(customerData) {
     this.detailsGrid.innerHTML = this.headers
